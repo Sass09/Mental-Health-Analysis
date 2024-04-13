@@ -1,0 +1,303 @@
+---
+Name: "Shifa Maqsood"
+title: "Global Mental Health Analysis"
+output: html_document
+date: "2024-03-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(grid)
+library(grid)
+library(shadowtext)
+library(knitr)
+library(gt)
+library(Hmisc)
+```
+
+```{r}
+import_data <- read.csv("Mental health Depression disorder Data.csv")
+
+```
+
+```{r}
+
+table_1 <- import_data[1:6467,]
+
+table_2 <- import_data[6470:54276,]
+table_2<- table_2[,1:7]
+
+table_3 <- import_data[54278:102084,]
+table_3 <- table_3[,1:7]
+
+table_4<- import_data[102086:108553,]
+table_4<- table_4[,1:5]
+
+```
+
+```{r}
+colnames(table_2)[5] <- c("Prevalence in males")
+colnames(table_2)[6] <- c("Prevalence in females")
+colnames(table_2)[7] <- c("Population")
+
+
+colnames(table_3)[5] <- c("Suicide rates")
+colnames(table_3)[6] <- c("Depressive Disorder Rates")
+colnames(table_3)[7] <- c("Population")
+
+
+colnames(table_4)[5] <- c("Prevalance-Depressive Disorders")
+```
+
+```{r}
+Temp1 <- left_join(table_1, table_2, by = c("Entity", "Code", "Year"))
+Temp2 <- left_join(Temp1, table_3, by = c("Entity", "Code", "Year"))
+Fulldf <- left_join(Temp2, table_4, by = c("Entity", "Code", "Year"))
+#since popilation column is repeated, we can remove on column
+Fulldf <- Fulldf[-c(15)]
+#remove indexes columns 
+Fulldf <- Fulldf[-c(12,15,19)]
+
+Fulldf <- rename(Fulldf, c("Population"="Population.y"))
+Fulldf <- rename(Fulldf,c("Schizophrenia(%)" = "Schizophrenia...."))
+Fulldf <- rename(Fulldf,c("Bipolar.disorder(%)" = "Bipolar.disorder...."))
+Fulldf <- rename(Fulldf,c("Eating.disorders(%)" = "Eating.disorders...."))
+Fulldf <- rename(Fulldf,c("Anxiety.disorders(%)" = "Anxiety.disorders...."))
+Fulldf <- rename(Fulldf,c("Drug.use.disorders(%)" = "Drug.use.disorders...."))
+Fulldf <- rename(Fulldf,c("Depression(%)" = "Depression...."))
+Fulldf <- rename(Fulldf,c("Alcohol.use.disorders(%)" = "Alcohol.use.disorders...."))
+
+
+```
+
+
+```{r}
+#check if there are any rows with empty null values 
+any(is.na(Fulldf))
+#check the structure of the data 
+glimpse(Fulldf)
+#the data shows that most of the columns are characters so we need tox convert them to double data type 
+#we can use the lapply function
+
+columns_to_change <- c("Schizophrenia....", "Bipolar.disorder....","Eating.disorders....","Anxiety.disorders....", "Drug.use.disorders....", "Depression....", "Alcohol.use.disorders....", "Prevalence in males", "Prevalence in females","Suicide rates", "Depressive Disorder Rates", "Population", "Prevalance-Depressive Disorders")
+
+columntype <- c("Bipolar.disorder(%)" , "Prevalence in males","Prevalence in females","Suicide rates","Depressive Disorder Rates","Population", "Prevalance-Depressive Disorders")
+
+Fulldf[columntype] <- lapply(Fulldf[columntype], as.double)
+
+Fulldf$Year <- as.integer(Fulldf$Year)
+```
+
+
+```{r}
+
+# Group by 'Year' and calculate the mean for each disorder
+meanyearly <- Fulldf %>%
+  group_by(Year) %>%
+  summarise(
+    `Schizophrenia (%)` = mean(`Schizophrenia(%)`, na.rm = TRUE),
+    `Bipolar.disorder (%)` = mean(`Bipolar.disorder(%)`, na.rm = TRUE),
+    `Eating.disorders (%)` = mean(`Eating.disorders(%)`, na.rm = TRUE),
+    `Anxiety.disorders (%)` = mean(`Anxiety.disorders(%)`, na.rm = TRUE),
+    `Drug.use.disorders (%)` = mean(`Drug.use.disorders(%)`, na.rm = TRUE),
+    `Depression (%)` = mean(`Depression(%)`, na.rm = TRUE),
+    `Alcohol.use.disorders (%)` = mean(`Alcohol.use.disorders(%)`, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  as.data.frame()  # Convert the result back to a data frame if needed
+
+head(meanyearly)
+
+
+
+```
+
+
+
+
+
+
+```{r}
+ggplot(meanyearly, aes(x = Year)) +
+  
+ 
+  geom_line(aes(y = `Schizophrenia (%)`, color = "Schizophrenia")) +
+  geom_line(aes(y = `Bipolar.disorder (%)`, color = "Bipolar Disorder")) +
+  geom_line(aes(y = `Eating.disorders (%)`, color = "Eating Disorders")) +
+  geom_line(aes(y = `Anxiety.disorders (%)`, color = "Anxiety Disorders")) +
+  geom_line(aes(y = `Drug.use.disorders (%)`, color = "Drug Use Disorders")) +
+  geom_line(aes(y = `Depression (%)`, color = "Depression")) +
+  geom_line(aes(y = `Alcohol.use.disorders (%)`, color = "Alcohol Use Disorders")) +
+  
+  # Customize plot labels and title
+  labs(title = "Mental disorders through the Years (1990-2017)",
+       x = "Years",
+       y = "Percentage of ppolulation") +
+  
+  # Customize plot appearance
+  theme_minimal() +
+  theme(legend.position = "right") +
+  scale_color_manual(values = c("Schizophrenia" = "red",
+                                "Bipolar Disorder" = "blue",
+                                "Eating Disorders" = "yellow",
+                                "Anxiety Disorders" = "darkgreen",
+                                "Drug Use Disorders" = "orange",
+                                "Depression" = "brown",
+                                "Alcohol Use Disorders" = "magenta")) +
+  
+  # Turn off grid lines
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  
+  # Set plot size
+  theme(plot.title = element_text(face = "bold")) +
+  theme(plot.title = element_text(face = "bold")) +
+  theme(plot.margin = unit(c(1, 1, 1, 1), "cm"))+
+    labs(color = "") 
+
+
+
+
+
+```
+
+```{r}
+#What trends am I interested in analyzing?
+#After cleaning data, it is important to focus on the questions regarding the dataset that interest you the most 
+#Has the prevalnce of disorders increased globally since 1990s?
+#Top countries for Anxiety disorder?
+#Is there prevalance of disorders more prevalent in high income countries?
+#Corr of alchohol ude disorders with other disorders 
+#prevalnce of diff disorders over time?
+#countries with highest rates of schizophrenia?
+# suicide rates for different disorders
+```
+
+```{r}
+
+#Top 10 countries with suicide rate 
+
+top_ten_suicide <- Fulldf %>%
+  group_by(Code,Year) %>%
+  summarise(avg_rate = mean(`Suicide rates`)) %>%
+group_by(Code) %>%
+  summarise(avg_rate_over_years = mean(avg_rate)) %>%
+  arrange(desc(avg_rate_over_years)) %>%
+  top_n(10)
+
+#rename the codes to country's name 
+
+top_ten_suicide$Code <- c("Greenland", "Russia", "Lithuania", "Sri Lanka","Kazakhstan", "Lesotho", "Belarus", "Zimbabwe", "Kiribati", "Guyana")
+
+colnames(top_ten_suicide)[colnames(top_ten_suicide) == "Code"] <- "Country"
+
+
+```
+
+```{r}
+
+Red <- "#820c0e"
+White <- "#ffffff"
+
+```
+
+
+```{r}
+
+graph_hz <- ggplot(top_ten_suicide) +
+  geom_col(aes(avg_rate_over_years, Country ), fill = Red, width = 0.6)
+
+
+#to ensure our bars are ordered we have to make the country a factor
+
+top_ten_suicide$Country <- factor(top_ten_suicide$Country, 
+                                  levels = (top_ten_suicide$Country[order(top_ten_suicide$avg_rate_over_years)]))
+
+
+graph_hz <- graph_hz + 
+  scale_x_continuous (
+  limits = c(0,75),
+breaks = seq(0,75, by =10),
+expand = c(0,0),
+position = "top")+
+  
+scale_y_discrete(expand = expansion(add= c(0,0.5))) +
+  theme(
+    panel.background = element_rect(fill = "pink", colour = "black"),
+   panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+      axis.ticks.length = unit(0, "mm"),
+    # Remove the title for both axes
+    axis.title = element_blank(),
+    # Only left line of the vertical axis is painted in black
+    axis.line.y.left = element_line(color = "black"),
+    # Remove labels from the vertical axis
+    axis.text.y = element_blank())+
+    # But customize labels for the horizontal axis
+  geom_text(aes(x = avg_rate_over_years, y = Country, label = Country),colour = "white", hjust = 0.999)
+
+graph_hz <- graph_hz +
+  
+  labs(title = "Average Rate Of Suicides Per Country (1990-2017)",
+       subtitle = "Top 10 countries with highest suicide rate (%)") +
+  theme(plot.title = element_text(family = "Arial", face= "bold", size = "18"),
+        plot.subtitle = element_text(family = "Arial", face= "italic", size = "14") )
+  
+
+
+graph_hz
+
+
+
+```
+```{r}
+#correlation of alcohol disorders with other common disorders 
+# make a df of the variables we are interested in
+corr_df <- Fulldf[,5:11]
+corr_df<- na.omit(corr_df)
+corr_df <- corr_df %>%
+  select(names(corr_df)[ncol(corr_df)], everything())
+
+#create a function 
+
+corrs <- function(df){
+  Matrixx <- rcorr(as.matrix(df))
+  M_to_df <- map(Matrixx, ~ data.frame(.x))
+  return(M_to_df)
+}
+
+
+
+```
+
+
+
+```{r}
+#make ggplot 
+
+corr_plot <- newfunction(corr_df) %>%
+  ggplot(aes(Measure1, Measure2, col=r)) + ## to get the rect filled
+  geom_tile(col="black", fill="white") +
+  geom_point(aes(size = abs(r)), shape=15) +
+  labs(x = NULL, y = NULL, col = "Pearson's\nCorrelation", title="Correlation of Alcohol Disorder With Other Disorders ") +
+  theme_classic()+
+  scale_color_gradient2(mid="#FBFEF9",low="#1F4788",high="#800000", limits=c(-1,1))  +
+  scale_x_discrete(expand=c(0,0)) +
+  scale_y_discrete(expand=c(0,0)) +
+  theme(text=element_text(family="Arial")) +
+  scale_size(range=c(1,11), guide=NULL) 
+
+#adjust the x scale names 
+
+
+corr_plot + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
+
+
+
+
+```
+
+
+
