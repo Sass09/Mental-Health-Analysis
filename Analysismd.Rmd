@@ -20,7 +20,7 @@ library(Hmisc)
 
 ```{r}
 import_data <- read.csv("Mental health Depression disorder Data.csv")
-
+import_mapping <- read.csv("continents2.csv")
 ```
 
 ```{r}
@@ -148,9 +148,7 @@ ggplot(meanyearly, aes(x = Year)) +
                                 "Depression" = "brown",
                                 "Alcohol Use Disorders" = "magenta")) +
   
-  # Turn off grid lines
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-  
+
   # Set plot size
   theme(plot.title = element_text(face = "bold")) +
   theme(plot.title = element_text(face = "bold")) +
@@ -299,5 +297,27 @@ corr_plot + theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust = 1))
 
 ```
 
+```{r}
+# to check if suicide rate is more or less according to the population of the regions
+# I am interested in finding only regions/continents.
+#use distinct function to find the regions
+region_df <- Fulldf %>%
+  select(index.x, Entity, Code, Year, `Suicide rates`, `Population`, `Prevalence in males`,`Prevalence in females`, `Prevalance-Depressive Disorders` )
 
+code_df <- import_mapping %>%
+  select(alpha.3, region, sub.region) %>%
+  rename("Code" = "alpha.3")
+
+```
+
+```{r}
+#inner join the map df and the region_df
+joined_region_df <- inner_join(region_df, code_df, by = 'Code')
+
+
+```
+
+```{r}
+
+```
 
