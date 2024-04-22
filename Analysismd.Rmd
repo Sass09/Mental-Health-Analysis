@@ -1,8 +1,12 @@
 ---
 Name: "Shifa Maqsood"
 title: "Global Mental Health Analysis"
-output: html_document
 date: "2024-03-02"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +20,10 @@ library(shadowtext)
 library(knitr)
 library(gt)
 library(Hmisc)
+library(gganimate)
+library(scales)
+library(ggplot2)
+library(gifski)
 ```
 
 ```{r}
@@ -266,6 +274,18 @@ corrs <- function(df){
   return(M_to_df)
 }
 
+newfunction <-function(df) {
+  corrs(df)%>%
+  map(~rownames_to_column(.x, var = "Measure1")) %>%
+  map(~pivot_longer(.x, -Measure1, names_to = "Measure2")) %>%
+  bind_rows(.id = "ID") %>%
+  rename("Value" = "value" ) %>%
+  pivot_wider(names_from = ID, values_from = Value) %>%
+  rename(p = P) %>%
+    mutate(sig_p = ifelse(p < .05, T, F),
+           p_if_sig = ifelse(sig_p, p, NA),
+           r_if_sig = ifelse(sig_p, r, NA)) 
+}
 
 
 ```
@@ -318,6 +338,34 @@ joined_region_df <- inner_join(region_df, code_df, by = 'Code')
 ```
 
 ```{r}
+#trend of suicide rates over years in regions 
+#aggregate 
+
+suicide_over_continents <- joined_region_df %>%
+  group_by(region, Year) %>%
+  summarise(avg_rate = mean(`Suicide rates`))
+
+suicide_over_continents_plot <-
+  ggplot(suicide_over_continents,aes(x= region, y= avg_rate, fill=region))+
+  geom_col(show.legend = FALSE) +
+  scale_fill_viridis_d(option = "A") +
+  scale_x_discrete(name = "",
+                   guide = guide_axis(n.dodge = 2))+
+  scale_y_continuous(name = "Average Rate Of Suicde",
+                     breaks = seq(0, 16,1))+
+  ggtitle('Year: {frame_time}')+
+  transition_time(Year)
+
+anim_save(filename = "images/suicide_over_years.gif", animation =suicide_over_continents_plot,
+            width = 8, height = 5, units = "in", res = 150, renderer = gifski_renderer())
+
+knitr::include_graphics("images/suicide_over_years.gif")
+```
+
+```{r}
+
+
+
 
 ```
 
